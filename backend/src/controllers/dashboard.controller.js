@@ -9,10 +9,14 @@ const ownerFilter = (req) => ({ ownerId: req.user._id });
 
 export const getOverview = asyncHandler(async (req, res) => {
   const filter = ownerFilter(req);
-  const [projects, teams, clients, invoices, services, revenueResult] = await Promise.all([
+  const [projects, teams, projectClients, invoices, services, revenueResult] = await Promise.all([
     Project.countDocuments(filter),
     User.countDocuments({ ownerId: req.user._id, role: { $in: ['developer', 'designer'] } }),
-    Client.countDocuments(filter),
+    Project.aggregate([
+      { $match: { ownerId: req.user._id, clientName: { $exists: true, $ne: '' } } },
+      { $group: { _id: { $toLower: { $trim: { input: '$clientName' } } } } },
+      { $count: 'total' },
+    ]),
     Invoice.countDocuments(filter),
     Service.countDocuments(filter),
     Project.aggregate([
@@ -21,6 +25,7 @@ export const getOverview = asyncHandler(async (req, res) => {
     ]),
   ]);
 
+  const clients = projectClients.length > 0 ? projectClients[0].total : 0;
   const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
   return res.json({
