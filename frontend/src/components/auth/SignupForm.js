@@ -24,6 +24,7 @@ export default function SignupForm() {
         companyEmail: values.accountType === 'company_business' ? values.companyEmail : undefined,
       };
       await signupUser(payload);
+
       notifySuccess('Account Created', 'Your account was created successfully. Please login to continue.');
       router.push('/auth/login');
     } catch (error) {
