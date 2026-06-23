@@ -372,8 +372,9 @@ export default function TeamsDashboard() {
         }}
         footer={null}
         centered
-        width={820}
+        width={980}
         className="proj-premium-modal"
+        styles={{ body: { maxHeight: '82vh', overflowY: 'auto' } }}
         forceRender={true}
       >
         <div className="proj-modal-header">
@@ -408,12 +409,16 @@ export default function TeamsDashboard() {
               label="Assign Module"
               rules={[{ required: true, message: 'Assign at least one module' }]}
             >
-              <Checkbox.Group className="team-project-checkbox-grid" options={managerModuleOptions} />
+              <Checkbox.Group
+                className="team-project-checkbox-grid"
+                options={managerModuleOptions}
+                style={{ maxHeight: 170, overflowY: 'auto' }}
+              />
             </Form.Item>
           ) : (
             <>
               <Form.Item name="assignedProjects" label="Assign Projects">
-                <Checkbox.Group className="team-project-checkbox-grid">
+                <Checkbox.Group className="team-project-checkbox-grid" style={{ maxHeight: 170, overflowY: 'auto' }}>
                   {projects.map((project) => (
                     <Checkbox value={project._id} key={project._id}>
                       {project.name}

@@ -150,6 +150,22 @@ export const updateProjectTemplate = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Project not found' });
   }
 
+  const isUpdatingTemplateDetails = req.body.templateKey !== undefined || req.body.templateName !== undefined || req.body.templateType !== undefined;
+
+  if (isUpdatingTemplateDetails) {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only admins can attach a template to a project.' });
+    }
+
+    const templateAccessError = validateProjectTemplateAccess(req);
+    if (templateAccessError) {
+      return res.status(403).json({ success: false, message: templateAccessError });
+    }
+  }
+
+  if (req.body.templateKey !== undefined) project.templateKey = req.body.templateKey || null;
+  if (req.body.templateName !== undefined) project.templateName = req.body.templateName || null;
+  if (req.body.templateType !== undefined) project.templateType = req.body.templateType || null;
   if (req.body.templateContent !== undefined) project.templateContent = req.body.templateContent || null;
   if (req.body.heroImage !== undefined) project.heroImage = req.body.heroImage || '';
   project.templateUpdatedAt = new Date();

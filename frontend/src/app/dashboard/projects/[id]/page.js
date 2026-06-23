@@ -15,6 +15,7 @@ import {
   UploadOutlined,
   UserOutlined,
   AppstoreOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { getMe } from '@/lib/api/auth';
 import { getProject, updateProject, updateProjectStatus, updateProjectTemplate } from '@/lib/api/projects';
@@ -876,6 +877,11 @@ export default function ProjectDetailsPage() {
   };
 
   const handleHeroImageUpload = (file) => {
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      notifyError('Unsupported Image', 'Only JPG and PNG images are supported.');
+      return Upload.LIST_IGNORE;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setHeroImageOverride(reader.result || '');
@@ -885,21 +891,25 @@ export default function ProjectDetailsPage() {
     return false;
   };
 
-  const handleSaveTemplateChanges = () => {
-    if (!templateStorageKey) return;
+  const handleAddTemplate = () => {
+    localStorage.setItem('templateAttachProjectId', id);
+    router.push('/dashboard/projects/add-template');
+  };
 
+  const handleSaveTemplateChanges = async () => {
+    setTemplateSaving(true);
     try {
-      localStorage.setItem(templateStorageKey, JSON.stringify({
-        content: templateContent,
-        heroImage: heroImageOverride,
-        savedAt: new Date().toISOString(),
-        templateName: displayName,
-        templateType: displayType,
-      }));
+      const response = await updateProjectTemplate(id, {
+        templateContent: templateContent || defaultMiniSiteContent,
+        heroImage: heroImageOverride || '',
+      });
+      setProject(response.data || project);
       setIsTemplateEditing(false);
-      notifySuccess('Template Saved', 'Mini website changes saved in this browser.');
-    } catch {
-      notifyError('Could not persist changes', 'Browser storage may be full. Download your design to keep a copy.');
+      notifySuccess('Template Saved', 'Template changes saved successfully.');
+    } catch (error) {
+      notifyError('Template Save Failed', getApiError(error));
+    } finally {
+      setTemplateSaving(false);
     }
   };
 
@@ -1120,16 +1130,19 @@ export default function ProjectDetailsPage() {
                         <div>
                           <span className="project-template-type-tag">{displayType}</span>
                           <h3>{displayName}</h3>
-                          <p>Premium single-page website editor for this selected template.</p>
+                          <p>
+                            Premium single-page website editor for this selected template.{' '}
+                            <span style={{ color: '#dc2626', fontWeight: 800 }}>(only jpg and png images support)</span>
+                          </p>
                         </div>
                         <div className="mini-site-actions">
                           {isTemplateEditing && (
-                            <Upload accept="image/*" showUploadList={false} beforeUpload={handleHeroImageUpload}>
+                            <Upload accept="image/jpeg,image/png,.jpg,.jpeg,.png" showUploadList={false} beforeUpload={handleHeroImageUpload}>
                               <Button size="large" icon={<UploadOutlined />}>Change Image</Button>
                             </Upload>
                           )}
                           {isTemplateEditing ? (
-                            <Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveTemplateChanges}>
+                            <Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveTemplateChanges} loading={templateSaving}>
                               Save Changes
                             </Button>
                           ) : (
@@ -1228,7 +1241,13 @@ export default function ProjectDetailsPage() {
                     </div>
                   ) : (
                     <div className="project-no-template">
-                      <p>No template attached to this project.</p>
+                      <h3>No template attached to this project.</h3>
+                      <p>Add a template now if this project was created without one.</p>
+                      {isAdmin && (
+                        <Button type="primary" size="large" icon={<PlusOutlined />} onClick={handleAddTemplate}>
+                          Add Template
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

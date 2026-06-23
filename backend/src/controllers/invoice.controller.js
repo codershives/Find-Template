@@ -1,20 +1,17 @@
 import { Invoice } from '../models/Invoice.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const GST_RATE = 18;
 const effectiveOwnerId = (req) => (req.user.role === 'admin' || req.user.isOwner ? req.user._id : req.user.ownerId);
 const ownerFilter = (req) => ({ ownerId: effectiveOwnerId(req) });
 
 const calculateInvoiceAmounts = (amount = 0) => {
   const safeAmount = Number(amount || 0);
-  const gstAmount = Number(((safeAmount * GST_RATE) / 100).toFixed(2));
-  const totalAmount = Number((safeAmount + gstAmount).toFixed(2));
 
   return {
     amount: safeAmount,
-    gstRate: GST_RATE,
-    gstAmount,
-    totalAmount,
+    gstRate: 0,
+    gstAmount: 0,
+    totalAmount: safeAmount,
   };
 };
 

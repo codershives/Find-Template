@@ -58,6 +58,7 @@ export default function ClientsDashboard() {
         name: editingClient.name,
         email: editingClient.email,
         mobileNumber: editingClient.mobileNumber,
+        projectName: editingClient.projectName,
         websiteType: editingClient.websiteType,
         projectBudget: editingClient.projectBudget,
         receivedAmount: editingClient.receivedAmount,
@@ -159,6 +160,7 @@ export default function ClientsDashboard() {
     },
     { title: 'Email', dataIndex: 'email', key: 'email', width: 230 },
     { title: 'Mobile No.', dataIndex: 'mobileNumber', key: 'mobileNumber', width: 150 },
+    { title: 'Project Name', dataIndex: 'projectName', key: 'projectName', width: 200, render: (value) => value || 'Data not available' },
     { title: 'Website Type', dataIndex: 'websiteType', key: 'websiteType', width: 170 },
     {
       title: 'Project Budget',
@@ -291,8 +293,9 @@ export default function ClientsDashboard() {
         }}
         footer={null}
         centered
-        width={820}
+        width={980}
         className="proj-premium-modal"
+        styles={{ body: { maxHeight: '82vh', overflowY: 'auto' } }}
         forceRender={true}
       >
         <div className="proj-modal-header">
@@ -313,10 +316,13 @@ export default function ClientsDashboard() {
             <Form.Item name="mobileNumber" label="Mobile No." rules={[{ required: true, message: 'Mobile number is required' }]}>
               <Input size="large" placeholder="Enter mobile number" />
             </Form.Item>
-            <Form.Item name="websiteType" label="Website Type" rules={[{ required: true, message: 'Website type is required' }]}>
-              <Input size="large" placeholder="E-commerce, Portfolio, Business..." />
+            <Form.Item name="projectName" label="Project Name" rules={[{ required: true, message: 'Project name is required' }]}>
+              <Input size="large" placeholder="Enter project name" />
             </Form.Item>
           </div>
+          <Form.Item name="websiteType" label="Website Type" rules={[{ required: true, message: 'Website type is required' }]}>
+            <Input size="large" placeholder="E-commerce, Portfolio, Business..." />
+          </Form.Item>
           <div className="payment-two-col">
             <Form.Item name="projectBudget" label="Project Budget ($)" rules={[{ required: true, message: 'Project budget is required' }]}>
               <Input size="large" type="number" min={0} placeholder="Enter project budget" />
@@ -350,6 +356,7 @@ export default function ClientsDashboard() {
             <div className="team-view-item"><span><UserOutlined /></span><small>Client Name</small><strong>{viewClient.name}</strong></div>
             <div className="team-view-item"><span><MailOutlined /></span><small>Email</small><strong>{viewClient.email}</strong></div>
             <div className="team-view-item"><span><PhoneOutlined /></span><small>Mobile No.</small><strong>{viewClient.mobileNumber}</strong></div>
+            <div className="team-view-item"><span><GlobalOutlined /></span><small>Project Name</small><strong>{viewClient.projectName || 'Data not available'}</strong></div>
             <div className="team-view-item"><span><GlobalOutlined /></span><small>Website Type</small><strong>{viewClient.websiteType}</strong></div>
             <div className="team-view-item"><span><DollarOutlined /></span><small>Project Budget</small><strong>{formatCurrency(viewClient.projectBudget)}</strong></div>
             <div className="team-view-item"><span><DollarOutlined /></span><small>Received Amount</small><strong>{formatCurrency(viewClient.receivedAmount)}</strong></div>

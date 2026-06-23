@@ -4,6 +4,7 @@ import { Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Toolti
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
+  CloseOutlined,
   DeleteOutlined,
   EyeOutlined,
   PlusOutlined,
@@ -21,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { getMe } from '@/lib/api/auth';
 import { createProject, deleteProject, getProjects } from '@/lib/api/projects';
+import { getClients } from '@/lib/api/clients';
 import { getApiError } from '@/lib/api/client';
 import { isPackageActive } from '@/lib/constants/packages';
 import { notifyError, notifySuccess } from '@/lib/notify';
@@ -44,14 +46,20 @@ const statusConfig = {
   pending: { color: '#d97706', bg: '#fffbeb', border: 'rgba(217,119,6,0.3)', label: 'Pending' },
 };
 
+const formatCurrency = (value) => `$${Number(value || 0).toLocaleString()}`;
+
 export default function ProjectsDashboard() {
   const router = useRouter();
   const [projects, setProjects] = useState([]);
+  const [clients, setClients] = useState([]);
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all');
   const [open, setOpen] = useState(false);
   const [viewProject, setViewProject] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [showClientSelector, setShowClientSelector] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(false);
   const [form] = Form.useForm();
   const selectedTemplate = Form.useWatch('templateName', form);
   const isAdmin = user?.role === 'admin';
@@ -62,6 +70,18 @@ export default function ProjectsDashboard() {
       setProjects(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       notifyError('Projects Load Failed', getApiError(error));
+    }
+  };
+
+  const loadClients = async () => {
+    setClientsLoading(true);
+    try {
+      const response = await getClients();
+      setClients(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      notifyError('Clients Load Failed', getApiError(error));
+    } finally {
+      setClientsLoading(false);
     }
   };
 
@@ -103,6 +123,9 @@ export default function ProjectsDashboard() {
         }
       }
       localStorage.removeItem('selectedProjectTemplate');
+      setSelectedClient(null);
+      setShowClientSelector(true);
+      loadClients();
       setOpen(true);
     }
   }, [form, isAdmin, user]);
@@ -114,19 +137,46 @@ export default function ProjectsDashboard() {
     pending: projects.filter((project) => project.status === 'pending').length,
   }), [projects]);
 
-  const filteredProjects = filter === 'all' ? projects : projects.filter((project) => project.status === filter);
+  const sortedProjects = useMemo(() => [...projects].sort((a, b) => {
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
+    return timeB - timeA;
+  }), [projects]);
+
+  const filteredProjects = useMemo(() => (
+    filter === 'all' ? sortedProjects : sortedProjects.filter((project) => project.status === filter)
+  ), [filter, sortedProjects]);
+
+  const getProjectSerialNo = (record) => {
+    const index = sortedProjects.findIndex((project) => project._id === record._id);
+    return index === -1 ? '-' : sortedProjects.length - index;
+  };
 
   const openFreshProjectForm = () => {
     localStorage.removeItem('projectDraft');
     localStorage.removeItem('selectedProjectTemplate');
     form.resetFields();
     form.setFieldsValue({ status: 'pending' });
+    setSelectedClient(null);
+    setShowClientSelector(true);
+    loadClients();
     setOpen(true);
   };
 
   const openAddTemplate = () => {
     localStorage.setItem('projectDraft', JSON.stringify(form.getFieldsValue()));
     router.push('/dashboard/projects/add-template');
+  };
+
+  const applySelectedClient = () => {
+    if (!selectedClient) return;
+
+    form.setFieldsValue({
+      name: selectedClient.projectName || '',
+      clientName: selectedClient.name || '',
+      budget: selectedClient.projectBudget ?? 0,
+    });
+    setShowClientSelector(false);
   };
 
   const submitProject = async (values) => {
@@ -140,6 +190,7 @@ export default function ProjectsDashboard() {
       notifySuccess('Project Added', 'Project added successfully.');
       localStorage.removeItem('projectDraft');
       form.resetFields();
+      setSelectedClient(null);
       setOpen(false);
       await loadProjects();
     } catch (error) {
@@ -159,7 +210,36 @@ export default function ProjectsDashboard() {
     }
   };
 
+  const clientSelectionColumns = [
+    {
+      title: 'Client Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 180,
+      render: (text) => (
+        <span className="proj-table-name">
+          <UserOutlined className="proj-table-name-icon" />
+          {text || 'Data not available'}
+        </span>
+      ),
+    },
+    { title: 'Project Name', dataIndex: 'projectName', key: 'projectName', width: 200, render: (value) => value || 'Data not available' },
+    {
+      title: 'Project Budget',
+      dataIndex: 'projectBudget',
+      key: 'projectBudget',
+      width: 160,
+      render: formatCurrency,
+    },
+  ];
+
   const columns = [
+    {
+      title: 'S. No.',
+      key: 'serialNo',
+      width: 90,
+      render: (_, record) => <strong>{getProjectSerialNo(record)}</strong>,
+    },
     {
       title: 'Project Name',
       dataIndex: 'name',
@@ -358,8 +438,9 @@ export default function ProjectsDashboard() {
         onCancel={() => setOpen(false)}
         footer={null}
         centered
-        width={760}
+        width={980}
         className="proj-premium-modal"
+        styles={{ body: { maxHeight: '82vh', overflowY: 'auto' } }}
         forceRender={true}
       >
         <div className="proj-modal-header">
@@ -367,13 +448,53 @@ export default function ProjectsDashboard() {
           <h2>Create a new project</h2>
           <p>Fill in the details below to add a new project to your workspace.</p>
         </div>
+
+        {showClientSelector && (
+          <div className="proj-table-section" style={{ marginBottom: 16 }}>
+            <div className="proj-table-header" style={{ marginBottom: 10 }}>
+              <div className="proj-table-header-left">
+                <span className="proj-table-kicker">Add project for</span>
+                <h3 className="proj-table-title" style={{ fontSize: 20 }}>Clients</h3>
+              </div>
+              <Space>
+                <Button type="primary" onClick={applySelectedClient} disabled={!selectedClient}>
+                  Done
+                </Button>
+                <Button icon={<CloseOutlined />} onClick={() => setShowClientSelector(false)}>
+                  Close
+                </Button>
+              </Space>
+            </div>
+            <Table
+              rowKey="_id"
+              size="small"
+              columns={clientSelectionColumns}
+              dataSource={clients}
+              loading={clientsLoading}
+              pagination={{ pageSize: 3 }}
+              scroll={{ x: 'max-content' }}
+              rowSelection={{
+                type: 'radio',
+                selectedRowKeys: selectedClient?._id ? [selectedClient._id] : [],
+                onChange: (_, selectedRows) => setSelectedClient(selectedRows[0] || null),
+              }}
+              onRow={(record) => ({
+                onClick: () => setSelectedClient(record),
+              })}
+              className="proj-premium-table"
+            />
+          </div>
+        )}
+
         <Form form={form} layout="vertical" onFinish={submitProject} initialValues={{ status: 'pending' }} requiredMark={false}>
-          <Form.Item name="name" label="Project Name" rules={[{ required: true, message: 'Project name is required' }]}>
-            <Input size="large" placeholder="Enter project name" />
-          </Form.Item>
-          <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Status is required' }]}>
-            <Select size="large" options={statusOptions} />
-          </Form.Item>
+          <div className="payment-two-col">
+            <Form.Item name="name" label="Project Name" rules={[{ required: true, message: 'Project name is required' }]}>
+              <Input size="large" placeholder="Enter project name" />
+            </Form.Item>
+            <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Status is required' }]}>
+              <Select size="large" options={statusOptions} />
+            </Form.Item>
+          </div>
           <div className="payment-two-col">
             <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Start date is required' }]}>
               <Input size="large" type="date" />
@@ -382,12 +503,14 @@ export default function ProjectsDashboard() {
               <Input size="large" type="date" />
             </Form.Item>
           </div>
-          <Form.Item name="clientName" label="Client Name" rules={[{ required: true, message: 'Client name is required' }]}>
-            <Input size="large" placeholder="Client name" />
-          </Form.Item>
-          <Form.Item name="budget" label="Project Budget ($)" rules={[{ required: true, message: 'Budget is required' }]}>
-            <Input size="large" type="number" min={0} placeholder="Enter project budget" />
-          </Form.Item>
+          <div className="payment-two-col">
+            <Form.Item name="clientName" label="Client Name" rules={[{ required: true, message: 'Client name is required' }]}>
+              <Input size="large" placeholder="Client name" />
+            </Form.Item>
+            <Form.Item name="budget" label="Project Budget ($)" rules={[{ required: true, message: 'Budget is required' }]}>
+              <Input size="large" type="number" min={0} placeholder="Enter project budget" />
+            </Form.Item>
+          </div>
 
           <Form.Item name="templateKey" hidden><Input /></Form.Item>
           <Form.Item name="templateName" hidden><Input /></Form.Item>

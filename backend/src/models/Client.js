@@ -5,6 +5,7 @@ const clientSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     mobileNumber: { type: String, required: true, trim: true },
+    projectName: { type: String, trim: true, default: '' },
     websiteType: { type: String, required: true, trim: true },
     projectBudget: { type: Number, required: true, min: 0, default: 0 },
     receivedAmount: { type: Number, required: true, min: 0, default: 0 },

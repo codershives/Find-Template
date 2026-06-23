@@ -20,6 +20,9 @@ export const projectStatusSchema = z.object({
 });
 
 export const projectTemplateSchema = z.object({
+  templateKey: z.string().trim().optional().nullable(),
+  templateName: z.string().trim().optional().nullable(),
+  templateType: z.string().trim().optional().nullable(),
   templateContent: z
     .object({
       brand: templateText,

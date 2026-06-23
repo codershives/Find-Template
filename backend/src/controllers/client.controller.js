@@ -7,11 +7,12 @@ const ownerFilter = (req) => ({ ownerId: effectiveOwnerId(req) });
 const calculatePendingAmount = (projectBudget = 0, receivedAmount = 0) => Math.max(Number(projectBudget || 0) - Number(receivedAmount || 0), 0);
 
 const applyClientUpdates = (client, body) => {
-  const { name, email, mobileNumber, websiteType, projectBudget, receivedAmount, paymentDate } = body;
+  const { name, email, mobileNumber, projectName, websiteType, projectBudget, receivedAmount, paymentDate } = body;
 
   if (name !== undefined) client.name = name;
   if (email !== undefined) client.email = email;
   if (mobileNumber !== undefined) client.mobileNumber = mobileNumber;
+  if (projectName !== undefined) client.projectName = projectName;
   if (websiteType !== undefined) client.websiteType = websiteType;
   if (projectBudget !== undefined) client.projectBudget = projectBudget;
   if (receivedAmount !== undefined) client.receivedAmount = receivedAmount;

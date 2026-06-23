@@ -5,7 +5,7 @@ import { Button, Form, Input, Modal, Select } from 'antd';
 import { StarFilled } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { confirmTemplatePayment } from '@/lib/api/projects';
+import { confirmTemplatePayment, updateProjectTemplate } from '@/lib/api/projects';
 import { getMe } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
 import { getTemplateUsage, isPackageActive } from '@/lib/constants/packages';
@@ -23,11 +23,14 @@ export default function AddProjectTemplatePage() {
   const [profile, setProfile] = useState(null);
   const [purchasedKeys, setPurchasedKeys] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [attachProjectId, setAttachProjectId] = useState('');
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const paymentMethod = Form.useWatch('paymentMethod', form);
 
   useEffect(() => {
+    setAttachProjectId(localStorage.getItem('templateAttachProjectId') || '');
+
     const loadPurchased = async () => {
       try {
         const response = await getMe();
@@ -52,13 +55,39 @@ export default function AddProjectTemplatePage() {
     purchased: purchasedKeys.includes(template.key),
   })), [purchasedKeys]);
 
-  const addTemplate = (template) => {
+  const attachTemplateToProject = async (template) => {
+    if (!attachProjectId) return false;
+
+    await updateProjectTemplate(attachProjectId, {
+      templateKey: template.key,
+      templateName: template.name,
+      templateType: template.type,
+    });
+    localStorage.removeItem('templateAttachProjectId');
+    notifySuccess('Template Added', `${template.name} added to this project.`);
+    router.push(`/dashboard/projects/${attachProjectId}`);
+    return true;
+  };
+
+  const addTemplate = async (template) => {
     if (!packageActive) {
       notifyError('Update Plan Required', profile?.selectedPackage ? 'Your package has expired. Please update your plan to add or use project templates.' : 'Please update your plan to add project templates.');
       return;
     }
 
     if (template.purchased) {
+      if (attachProjectId) {
+        setLoading(true);
+        try {
+          await attachTemplateToProject(template);
+        } catch (error) {
+          notifyError('Template Attach Failed', getApiError(error));
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       localStorage.setItem('selectedProjectTemplate', JSON.stringify(template));
       router.push('/dashboard/projects');
       return;
@@ -85,9 +114,13 @@ export default function AddProjectTemplatePage() {
         email: values.email,
         paymentMethod: values.paymentMethod,
       });
-      notifySuccess('Template Added', `${selectedTemplate.name} added successfully.`);
-      localStorage.setItem('selectedProjectTemplate', JSON.stringify(selectedTemplate));
-      setTimeout(() => router.push('/dashboard/projects'), 900);
+      if (attachProjectId) {
+        await attachTemplateToProject(selectedTemplate);
+      } else {
+        notifySuccess('Template Added', `${selectedTemplate.name} added successfully.`);
+        localStorage.setItem('selectedProjectTemplate', JSON.stringify(selectedTemplate));
+        setTimeout(() => router.push('/dashboard/projects'), 900);
+      }
     } catch (error) {
       notifyError('Template Payment Failed', getApiError(error));
     } finally {
