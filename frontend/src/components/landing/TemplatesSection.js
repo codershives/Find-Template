@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import storeImage from '@/assets/images/images/fshion_store.avif';
-import photographerImage from '@/assets/images/images/photography.avif';
+import storeImage from '@/assets/images/images/fashion.png';
+import photographerImage from '@/assets/images/images/photo.png';
 import startupImage from '@/assets/images/images/startup.jpg';
 
 const templates = [

@@ -23,7 +23,7 @@ const inquirySchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       trim: true,
-      default: 'therahulsharma15@gmail.com',
+      default: 'admin@findtempletes.com',
     },
   },
   { timestamps: true }

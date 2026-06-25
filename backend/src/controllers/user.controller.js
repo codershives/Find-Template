@@ -1,14 +1,6 @@
 import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { authCookieOptions } from '../utils/cookieOptions.js';
-import {
-  getPackageExpiry,
-  getPackagePrice,
-  getPackageTemplateLimit,
-  getPurchasedTemplateCount,
-  getTemplateLimitMessage,
-  isPackageActive,
-} from '../utils/packageRules.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 
 const serializeProfile = async (user) => {
@@ -53,69 +45,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
   await req.user.save();
 
   return res.json({ success: true, message: 'Profile updated successfully', data: await serializeProfile(req.user) });
-});
-
-export const confirmFakePayment = asyncHandler(async (req, res) => {
-  const { plan, billing, email, paymentMethod } = req.body;
-  const packagePrice = getPackagePrice(billing, plan);
-  const activatedAt = new Date();
-
-  req.user.selectedPackage = plan;
-  req.user.selectedPackageBilling = billing;
-  req.user.selectedPackagePrice = packagePrice;
-  req.user.selectedPackageActivatedAt = activatedAt;
-  req.user.selectedPackageExpiresAt = getPackageExpiry(billing, activatedAt);
-  req.user.paymentEmail = email;
-  req.user.paymentMethod = paymentMethod;
-
-  await req.user.save();
-
-  return res.json({
-    success: true,
-    message: 'Payment confirmed successfully',
-    data: req.user.toSafeProfile(),
-  });
-});
-
-export const confirmTemplatePayment = asyncHandler(async (req, res) => {
-  const { templateKey, name, type, email, paymentMethod } = req.body;
-  const alreadyPurchased = req.user.purchasedTemplates?.some((template) => template.templateKey === templateKey);
-
-  if (alreadyPurchased) {
-    return res.json({
-      success: true,
-      message: 'Template already available in your package.',
-      data: req.user.toSafeProfile(),
-    });
-  }
-
-  if (!isPackageActive(req.user)) {
-    return res.status(403).json({ success: false, message: getTemplateLimitMessage(req.user) });
-  }
-
-  const templateLimit = getPackageTemplateLimit(req.user.selectedPackage);
-  const purchasedCount = getPurchasedTemplateCount(req.user);
-
-  if (purchasedCount >= templateLimit) {
-    return res.status(403).json({ success: false, message: getTemplateLimitMessage(req.user) });
-  }
-
-  req.user.purchasedTemplates.push({
-    templateKey,
-    name,
-    type,
-    paymentEmail: email,
-    paymentMethod,
-    purchasedAt: new Date(),
-  });
-
-  await req.user.save();
-
-  return res.json({
-    success: true,
-    message: 'Template payment confirmed successfully',
-    data: req.user.toSafeProfile(),
-  });
 });
 
 export const updatePassword = asyncHandler(async (req, res) => {

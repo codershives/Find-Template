@@ -3508,6 +3508,51 @@ a {
   background: #f8fafc !important;
 }
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .invoice-print-area,
+  .invoice-print-area * {
+    visibility: visible !important;
+  }
+
+  .invoice-print-area {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .invoice-print-area .ant-table,
+  .invoice-print-area .ant-table-container,
+  .invoice-print-area .ant-table-content,
+  .invoice-print-area table {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .invoice-print-area .ant-table-cell,
+  .invoice-print-area .ant-table-thead > tr > th,
+  .invoice-print-area .ant-table-tbody > tr > td {
+    color: #0f172a !important;
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  .invoice-print-area .ant-table-pagination,
+  .invoice-print-area .ant-pagination,
+  .invoice-print-area .ant-table-cell:last-child {
+    display: none !important;
+  }
+}
+
 .proj-table-name {
   display: inline-flex;
   align-items: center;
@@ -4570,6 +4615,35 @@ a {
   border-radius: 20px;
   background: #f8fafc;
   margin-bottom: 18px;
+}
+
+.square-card-shell {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #f8fafc;
+  margin-bottom: 18px;
+}
+
+.square-card-container {
+  min-height: 92px;
+}
+
+.square-card-helper,
+.square-card-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.square-card-helper {
+  color: #2563eb;
+}
+
+.square-card-error {
+  color: #dc2626;
 }
 
 .payment-two-col {

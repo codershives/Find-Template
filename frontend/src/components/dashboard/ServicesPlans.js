@@ -1,18 +1,13 @@
 'use client';
 
-import { Button, Form, Input, Modal, Segmented, Select } from 'antd';
+import { Button, Form, Input, Modal, Segmented } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, RocketOutlined } from '@ant-design/icons';
-import { useState } from 'react';
-import { confirmFakePayment } from '@/lib/api/profile';
+import { useRef, useState } from 'react';
+import { purchasePackage } from '@/lib/api/payments';
 import { getApiError } from '@/lib/api/client';
 import { SERVICE_PLANS } from '@/lib/constants/packages';
 import { notifyError, notifySuccess } from '@/lib/notify';
-
-const paymentMethods = [
-  { label: 'Card', value: 'card' },
-  { label: 'PayPal', value: 'paypal' },
-  { label: 'Bank Transfer', value: 'bank_transfer' },
-];
+import SquareCardPayment from '@/components/payments/SquareCardPayment';
 
 const pairFeatures = (features) => {
   const pairs = [];
@@ -27,11 +22,11 @@ export default function ServicesPlans() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-  const paymentMethod = Form.useWatch('paymentMethod', form);
+  const squareCardRef = useRef(null);
 
   const openPayment = (plan) => {
     setSelectedPlan(plan);
-    form.setFieldsValue({ plan: plan.name, paymentMethod: 'card' });
+    form.setFieldsValue({ plan: plan.name });
   };
 
   const closePayment = () => {
@@ -44,11 +39,13 @@ export default function ServicesPlans() {
 
     setLoading(true);
     try {
-      await confirmFakePayment({
+      const sourceId = await squareCardRef.current.tokenize();
+      await purchasePackage({
+        sourceId,
         plan: selectedPlan.key,
         billing,
         email: values.email,
-        paymentMethod: values.paymentMethod,
+        idempotencyKey: crypto.randomUUID(),
       });
       notifySuccess('Payment Confirmed', `${selectedPlan.name} package activated successfully. Dashboard access is updating now.`);
       setTimeout(() => {
@@ -157,53 +154,7 @@ export default function ServicesPlans() {
           <Form.Item name="email" label="Payment Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
             <Input size="large" placeholder="payment@example.com" />
           </Form.Item>
-          <Form.Item name="paymentMethod" label="Payment Method" rules={[{ required: true, message: 'Payment method is required' }]}>
-            <Select size="large" options={paymentMethods} />
-          </Form.Item>
-
-          {paymentMethod === 'card' && (
-            <div className="payment-method-fields">
-              <Form.Item name="cardHolder" label="Card Holder Name" rules={[{ required: true, message: 'Card holder name is required' }]}>
-                <Input size="large" placeholder="Name on card" />
-              </Form.Item>
-              <Form.Item name="cardNumber" label="Card Number" rules={[{ required: true, message: 'Card number is required' }]}>
-                <Input size="large" placeholder="4242 4242 4242 4242" />
-              </Form.Item>
-              <div className="payment-two-col">
-                <Form.Item name="expiry" label="Expiry" rules={[{ required: true, message: 'Expiry is required' }]}>
-                  <Input size="large" placeholder="MM/YY" />
-                </Form.Item>
-                <Form.Item name="cvv" label="CVV" rules={[{ required: true, message: 'CVV is required' }]}>
-                  <Input size="large" placeholder="123" />
-                </Form.Item>
-              </div>
-            </div>
-          )}
-
-          {paymentMethod === 'paypal' && (
-            <div className="payment-method-fields">
-              <Form.Item name="paypalEmail" label="PayPal Email" rules={[{ required: true, type: 'email', message: 'Valid PayPal email is required' }]}>
-                <Input size="large" placeholder="paypal@example.com" />
-              </Form.Item>
-              <Form.Item name="paypalTransaction" label="PayPal Transaction ID" rules={[{ required: true, message: 'Transaction ID is required' }]}>
-                <Input size="large" placeholder="PAYPAL-TRANSACTION-ID" />
-              </Form.Item>
-            </div>
-          )}
-
-          {paymentMethod === 'bank_transfer' && (
-            <div className="payment-method-fields">
-              <Form.Item name="accountName" label="Account Holder Name" rules={[{ required: true, message: 'Account holder name is required' }]}>
-                <Input size="large" placeholder="Account holder name" />
-              </Form.Item>
-              <Form.Item name="accountNumber" label="Account Number" rules={[{ required: true, message: 'Account number is required' }]}>
-                <Input size="large" placeholder="Account number" />
-              </Form.Item>
-              <Form.Item name="bankName" label="Bank Name" rules={[{ required: true, message: 'Bank name is required' }]}>
-                <Input size="large" placeholder="Bank name" />
-              </Form.Item>
-            </div>
-          )}
+          <SquareCardPayment ref={squareCardRef} active={Boolean(selectedPlan)} />
 
           <Button type="primary" htmlType="submit" className="proj-submit-btn" loading={loading} block>Confirm Checkout</Button>
         </Form>

@@ -4,14 +4,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { StarFilled } from '@ant-design/icons';
 import { useMemo, useState } from 'react';
-import fashionImage from '@/assets/images/images/fshion_store.avif';
-import photographerImage from '@/assets/images/images/photography.avif';
+import fashionImage from '@/assets/images/images/fashion.png';
+import photographerImage from '@/assets/images/images/photo.png';
 import startupImage from '@/assets/images/images/startup.jpg';
 import fineDineImage from '@/assets/images/images/dinner.jpg';
-import cafeImage from '@/assets/images/images/cafe.webp';
-import weddingImage from '@/assets/images/images/wedding.jpg';
+import cafeImage from '@/assets/images/images/cafe.png';
+import weddingImage from '@/assets/images/images/wedding.png';
 import digitalImage from '@/assets/images/images/digital.jpg';
-import jewelryImage from '@/assets/images/images/e-commerce.jpg';
+import jewelryImage from '@/assets/images/images/comm.png';
 
 const templates = [
   { name: 'Fashion Store', type: 'Ecommerce', category: 'Ecommerce', rating: 4.8, image: fashionImage },

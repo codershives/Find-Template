@@ -1,6 +1,10 @@
 'use client';
 
-import { Button, Form, Input, message } from 'antd';
+import { Button, Form, Input } from 'antd';
+import { useState } from 'react';
+import { getApiError } from '@/lib/api/client';
+import { submitInquiry } from '@/lib/api/dashboard';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import {
   ArrowRightOutlined,
   ClockCircleOutlined,
@@ -62,10 +66,23 @@ const contactDetails = [
 
 export default function SupportInfoPage() {
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    message.success('Thanks! Your message has been prepared for the FindTemplates team.');
-    form.resetFields();
+  const handleSubmit = async (values) => {
+    setLoading(true);
+    try {
+      await submitInquiry({
+        name: values.name,
+        email: values.email,
+        message: `Subject: ${values.subject}\nPhone: ${values.phone || 'Not provided'}\n\n${values.message}`,
+      });
+      notifySuccess('Message Sent', 'Thanks! Your message has been sent to the FindTemplates team.');
+      form.resetFields();
+    } catch (error) {
+      notifyError('Message Failed', getApiError(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -183,7 +200,7 @@ export default function SupportInfoPage() {
           <Form.Item name="message" label="Message" rules={[{ required: true, message: 'Please write your message' }]}>
             <Input.TextArea rows={5} placeholder="Tell us about your request..." />
           </Form.Item>
-          <Button type="primary" htmlType="submit" className="support-submit-btn" block>
+          <Button type="primary" htmlType="submit" className="support-submit-btn" loading={loading} block>
             Send Message <ArrowRightOutlined />
           </Button>
         </Form>

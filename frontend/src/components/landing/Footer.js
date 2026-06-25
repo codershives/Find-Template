@@ -28,7 +28,7 @@ export default function Footer() {
         <div>
           <h3>Contact</h3>
           <p style={{ color: '#94a3b8', lineHeight: 1.8 }}>
-            WASIF AHMED, Pranjul Tandon<br />
+            WASIF AHMED<br />
             195 Huntingford Trail<br />
             Woodstock ON N4T 0M4, Canada<br />
             <a href="mailto:admin@findtempletes.com">admin@findtempletes.com</a><br />

@@ -7,9 +7,11 @@ import {
   ClockCircleOutlined,
   CloseOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   FileTextOutlined,
   PlusOutlined,
+  PrinterOutlined,
   RocketOutlined,
 } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
@@ -21,6 +23,12 @@ import { notifyError, notifySuccess } from '@/lib/notify';
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : 'Data not available');
 const formatForInput = (value) => (value ? new Date(value).toISOString().split('T')[0] : '');
 const formatCurrency = (value) => `$${Number(value || 0).toLocaleString()}`;
+const escapeHtml = (value = '') => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
 const statusOptions = [
   { label: 'Paid', value: 'paid' },
   { label: 'Pending', value: 'pending' },
@@ -171,6 +179,92 @@ export default function InvoicesDashboard() {
     }
   };
 
+  const printInvoices = () => {
+    window.print();
+  };
+
+  const printSingleInvoice = (invoice) => {
+    const invoiceHtml = `
+      <!doctype html>
+      <html>
+        <head>
+          <title>Invoice - ${escapeHtml(invoice.clientName || 'Client')}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #0f172a; padding: 32px; }
+            .invoice-card { max-width: 780px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 18px; overflow: hidden; }
+            .invoice-header { padding: 28px; background: #0f172a; color: #ffffff; }
+            .invoice-header h1 { margin: 0 0 8px; font-size: 30px; }
+            .invoice-header p { margin: 0; color: #cbd5e1; }
+            .invoice-body { padding: 28px; }
+            .invoice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 28px; }
+            .invoice-item { padding: 16px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; }
+            .invoice-item small { display: block; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+            .invoice-item strong { font-size: 16px; }
+            .amount-row { display: flex; justify-content: space-between; align-items: center; padding: 18px; border-radius: 14px; background: #eff6ff; color: #1d4ed8; font-weight: 800; }
+            .amount-row strong { font-size: 24px; }
+            @media print { body { padding: 0; } .invoice-card { border-radius: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-card">
+            <div class="invoice-header">
+              <h1>FindTemplates Invoice</h1>
+              <p>Generated invoice record</p>
+            </div>
+            <div class="invoice-body">
+              <div class="invoice-grid">
+                <div class="invoice-item"><small>Client Name</small><strong>${escapeHtml(invoice.clientName || 'Data not available')}</strong></div>
+                <div class="invoice-item"><small>Client Email</small><strong>${escapeHtml(invoice.clientEmail || 'Data not available')}</strong></div>
+                <div class="invoice-item"><small>Project Name</small><strong>${escapeHtml(invoice.projectName || 'Data not available')}</strong></div>
+                <div class="invoice-item"><small>Due Date</small><strong>${escapeHtml(formatDate(invoice.dueDate))}</strong></div>
+                <div class="invoice-item"><small>Status</small><strong>${escapeHtml(statusConfig[invoice.status]?.label || invoice.status || 'Pending')}</strong></div>
+                <div class="invoice-item"><small>Invoice ID</small><strong>${escapeHtml(invoice._id || 'Data not available')}</strong></div>
+              </div>
+              <div class="amount-row">
+                <span>Total Amount</span>
+                <strong>${formatCurrency(invoice.totalAmount ?? invoice.amount)}</strong>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.top = '-10000px';
+    printFrame.style.left = '-10000px';
+    printFrame.style.width = '794px';
+    printFrame.style.height = '1123px';
+    printFrame.style.border = '0';
+    printFrame.style.background = '#ffffff';
+
+    const cleanup = () => {
+      setTimeout(() => printFrame.remove(), 500);
+    };
+
+    document.body.appendChild(printFrame);
+
+    const frameWindow = printFrame.contentWindow;
+    const frameDocument = frameWindow?.document;
+    if (!frameWindow || !frameDocument) {
+      cleanup();
+      notifyError('Download Failed', 'Unable to prepare invoice download.');
+      return;
+    }
+
+    frameDocument.open();
+    frameDocument.write(invoiceHtml);
+    frameDocument.close();
+
+    setTimeout(() => {
+      frameWindow.focus();
+      frameWindow.onafterprint = cleanup;
+      frameWindow.print();
+      setTimeout(cleanup, 3000);
+    }, 300);
+  };
+
   const clientSelectionColumns = [
     {
       title: 'Client Name',
@@ -252,6 +346,9 @@ export default function InvoicesDashboard() {
       exportable: false,
       render: (_, record) => (
         <Space size="middle">
+          <Tooltip title="Download Invoice">
+            <Button className="proj-action-btn" icon={<DownloadOutlined />} onClick={() => printSingleInvoice(record)} />
+          </Tooltip>
           <Tooltip title="Edit Invoice">
             <Button className="proj-action-btn" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
           </Tooltip>
@@ -323,8 +420,11 @@ export default function InvoicesDashboard() {
             <span className="proj-table-kicker">Invoice Records</span>
             <h2 className="proj-table-title">Invoices</h2>
           </div>
+          <Button type="primary" icon={<PrinterOutlined />} onClick={printInvoices}>
+            Download Invoice
+          </Button>
         </div>
-        <div className="proj-table-wrapper">
+        <div className="proj-table-wrapper invoice-print-area">
           <Table
             rowKey="_id"
             columns={columns}

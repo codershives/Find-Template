@@ -1,22 +1,18 @@
 'use client';
 
 import Image from 'next/image';
-import { Button, Form, Input, Modal, Select } from 'antd';
+import { Button, Form, Input, Modal } from 'antd';
 import { StarFilled } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import { confirmTemplatePayment, updateProjectTemplate } from '@/lib/api/projects';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { updateProjectTemplate } from '@/lib/api/projects';
 import { getMe } from '@/lib/api/auth';
 import { getApiError } from '@/lib/api/client';
 import { getTemplateUsage, isPackageActive } from '@/lib/constants/packages';
 import { TEMPLATE_CATALOG } from '@/lib/constants/templateCatalog';
 import { notifyError, notifySuccess } from '@/lib/notify';
-
-const paymentMethods = [
-  { label: 'Card', value: 'card' },
-  { label: 'PayPal', value: 'paypal' },
-  { label: 'Bank Transfer', value: 'bank_transfer' },
-];
+import { purchaseTemplate } from '@/lib/api/payments';
+import SquareCardPayment from '@/components/payments/SquareCardPayment';
 
 export default function AddProjectTemplatePage() {
   const router = useRouter();
@@ -26,7 +22,7 @@ export default function AddProjectTemplatePage() {
   const [attachProjectId, setAttachProjectId] = useState('');
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-  const paymentMethod = Form.useWatch('paymentMethod', form);
+  const squareCardRef = useRef(null);
 
   useEffect(() => {
     setAttachProjectId(localStorage.getItem('templateAttachProjectId') || '');
@@ -99,7 +95,7 @@ export default function AddProjectTemplatePage() {
     }
 
     setSelectedTemplate(template);
-    form.setFieldsValue({ paymentMethod: 'card', email: '' });
+    form.setFieldsValue({ email: '' });
   };
 
   const confirmPayment = async (values) => {
@@ -107,12 +103,12 @@ export default function AddProjectTemplatePage() {
 
     setLoading(true);
     try {
-      await confirmTemplatePayment({
+      const sourceId = await squareCardRef.current.tokenize();
+      await purchaseTemplate({
+        sourceId,
         templateKey: selectedTemplate.key,
-        name: selectedTemplate.name,
-        type: selectedTemplate.type,
         email: values.email,
-        paymentMethod: values.paymentMethod,
+        idempotencyKey: crypto.randomUUID(),
       });
       if (attachProjectId) {
         await attachTemplateToProject(selectedTemplate);
@@ -163,41 +159,15 @@ export default function AddProjectTemplatePage() {
         ))}
       </div>
 
-      <Modal title="Template Fake Payment" open={Boolean(selectedTemplate)} onCancel={() => setSelectedTemplate(null)} footer={null} centered forceRender={true}>
+      <Modal title="Template Checkout" open={Boolean(selectedTemplate)} onCancel={() => setSelectedTemplate(null)} footer={null} centered forceRender={true}>
         <Form form={form} layout="vertical" onFinish={confirmPayment} requiredMark={false}>
           <Form.Item label="Selected Template">
-            <Input size="large" value={selectedTemplate ? `${selectedTemplate.name} (${selectedTemplate.type})` : ''} disabled />
+            <Input size="large" value={selectedTemplate ? `${selectedTemplate.name} (${selectedTemplate.type}) - $${selectedTemplate.price}` : ''} disabled />
           </Form.Item>
           <Form.Item name="email" label="Payment Email" rules={[{ required: true, type: 'email', message: 'Valid email is required' }]}>
             <Input size="large" placeholder="payment@example.com" />
           </Form.Item>
-          <Form.Item name="paymentMethod" label="Payment Method" rules={[{ required: true, message: 'Payment method is required' }]}>
-            <Select size="large" options={paymentMethods} />
-          </Form.Item>
-          {paymentMethod === 'card' && (
-            <div className="payment-method-fields">
-              <Form.Item name="cardHolder" label="Card Holder Name" rules={[{ required: true, message: 'Card holder name is required' }]}>
-                <Input size="large" placeholder="Name on card" />
-              </Form.Item>
-              <Form.Item name="cardNumber" label="Card Number" rules={[{ required: true, message: 'Card number is required' }]}>
-                <Input size="large" placeholder="4242 4242 4242 4242" />
-              </Form.Item>
-            </div>
-          )}
-          {paymentMethod === 'paypal' && (
-            <div className="payment-method-fields">
-              <Form.Item name="paypalTransaction" label="PayPal Transaction ID" rules={[{ required: true, message: 'Transaction ID is required' }]}>
-                <Input size="large" placeholder="PAYPAL-TRANSACTION-ID" />
-              </Form.Item>
-            </div>
-          )}
-          {paymentMethod === 'bank_transfer' && (
-            <div className="payment-method-fields">
-              <Form.Item name="bankReference" label="Bank Reference Number" rules={[{ required: true, message: 'Bank reference is required' }]}>
-                <Input size="large" placeholder="Bank reference number" />
-              </Form.Item>
-            </div>
-          )}
+          <SquareCardPayment ref={squareCardRef} active={Boolean(selectedTemplate)} />
           <Button type="primary" htmlType="submit" className="auth-submit-btn" loading={loading} block>Confirm Payment</Button>
         </Form>
       </Modal>

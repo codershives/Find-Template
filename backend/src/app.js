@@ -13,6 +13,7 @@ import teamRoutes from './routes/team.routes.js';
 import clientRoutes from './routes/client.routes.js';
 import invoiceRoutes from './routes/invoice.routes.js';
 import serviceRoutes from './routes/service.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
 import { errorHandler, notFound } from './middleware/error.middleware.js';
 
 export const app = express();
@@ -21,6 +22,9 @@ const allowedOrigins = [
   env.frontendUrl,
   'https://find-template-2.onrender.com',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
 ].filter(Boolean);
 
 app.use(helmet());
@@ -59,6 +63,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

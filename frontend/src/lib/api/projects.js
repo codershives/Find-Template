@@ -20,11 +20,6 @@ export const deleteProject = async (id) => {
   return data;
 };
 
-export const confirmTemplatePayment = async (payload) => {
-  const { data } = await apiClient.post('/users/template-payment', payload);
-  return data;
-};
-
 export const updateProject = async (id, payload) => {
   const { data } = await apiClient.put(`/projects/${id}`, payload);
   return data;

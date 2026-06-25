@@ -3,9 +3,9 @@ import photographerImage from '@/assets/images/images/photo.png';
 import startupImage from '@/assets/images/images/startup.jpg';
 import fineDineImage from '@/assets/images/images/dinner.jpg';
 import cafeImage from '@/assets/images/images/cafe.png';
-import weddingImage from '@/assets/images/images/wedding.jpg';
+import weddingImage from '@/assets/images/images/wedding.png';
 import digitalImage from '@/assets/images/images/digital.jpg';
-import jewelryImage from '@/assets/images/images/e-commerce.jpg';
+import jewelryImage from '@/assets/images/images/comm.png';
 
 export const TEMPLATE_CATALOG = [
   { key: 'fashion-store', name: 'Fashion Store', type: 'Ecommerce', category: 'Ecommerce', rating: 4.8, price: 199, image: fashionImage },

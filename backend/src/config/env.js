@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 export const env = {
   port: process.env.PORT || 5000,
@@ -16,4 +16,8 @@ export const env = {
   smtpPass: process.env.SMTP_PASS || '',
   smtpFrom: process.env.SMTP_FROM || process.env.SMTP_USER || '',
   passwordResetOtpExpiresMinutes: Number(process.env.PASSWORD_RESET_OTP_EXPIRES_MINUTES || 10),
+  squareEnvironment: process.env.SQUARE_ENVIRONMENT || 'sandbox',
+  squareAccessToken: process.env.SQUARE_ACCESS_TOKEN || '',
+  squareLocationId: process.env.SQUARE_LOCATION_ID || '',
+  squareCurrency: process.env.SQUARE_CURRENCY || 'USD',
 };
